@@ -5,9 +5,12 @@
 // - Có thể mở rộng thêm các cài đặt khác trong tương lai.
 // =========================
 
-import React from 'react';
-import { View, Text, StyleSheet, Switch } from 'react-native';
+import React, { useContext } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, Switch } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/Ionicons';
 import { useTheme } from '../contexts/ThemeContext';
+import { AuthContext } from '../contexts/AuthContext';
 
 // Fallback colors and theme functions
 const defaultColors = {
@@ -20,34 +23,89 @@ const defaultColors = {
 };
 
 const SettingScreen = () => {
-  // Safely get theme with fallback
-  let theme = 'light';
-  let colors = defaultColors;
-  let toggleTheme = () => console.log('Theme toggle not available');
-  
-  try {
-    const themeContext = useTheme();
-    if (themeContext) {
-      theme = themeContext.theme || 'light';
-      colors = themeContext.colors || defaultColors;
-      toggleTheme = themeContext.toggleTheme || (() => console.log('Theme toggle not available'));
-    }
-  } catch (error) {
-    console.error("Error getting theme in SettingScreen:", error);
-  }
+  const navigation = useNavigation();
+  const { colors, theme, toggleTheme } = useTheme();
+  const { logout } = useContext(AuthContext);
+
+  const handleLogout = async () => {
+    Alert.alert(
+      'Đăng xuất',
+      'Bạn có chắc chắn muốn đăng xuất?',
+      [
+        {
+          text: 'Hủy',
+          style: 'cancel',
+        },
+        {
+          text: 'Đăng xuất',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await logout();
+              // Navigation sẽ tự động chuyển về màn hình đăng nhập
+              // vì MainTabs đã được cấu hình để kiểm tra userToken
+            } catch (error) {
+              Alert.alert('Lỗi', 'Không thể đăng xuất. Vui lòng thử lại.');
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}> 
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Text style={[styles.title, { color: colors.text }]}>Cài đặt</Text>
-      <View style={styles.row}>
-        <Text style={[styles.label, { color: colors.text }]}>Chế độ tối</Text>
+
+      {/* Dark Mode Toggle */}
+      <View style={[styles.settingItem, { borderBottomColor: colors.border }]}>
+        <Icon name={theme === 'dark' ? 'moon' : 'sunny-outline'} size={24} color={colors.text} />
+        <Text style={[styles.settingText, { color: colors.text }]}>Chế độ tối</Text>
         <Switch
           value={theme === 'dark'}
           onValueChange={toggleTheme}
-          thumbColor={theme === 'dark' ? colors.primary : '#ccc'}
-          trackColor={{ false: '#ccc', true: colors.primary }}
+          trackColor={{ false: '#767577', true: colors.primary }}
+          thumbColor={theme === 'dark' ? '#fff' : '#f4f3f4'}
         />
       </View>
+
+      {/* Các tùy chọn cài đặt khác */}
+      <TouchableOpacity
+        style={[styles.settingItem, { borderBottomColor: colors.border }]}
+        onPress={() => navigation.navigate('Profile')}
+      >
+        <Icon name="person-outline" size={24} color={colors.text} />
+        <Text style={[styles.settingText, { color: colors.text }]}>Thông tin cá nhân</Text>
+        <Icon name="chevron-forward" size={24} color={colors.text} />
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.settingItem, { borderBottomColor: colors.border }]}
+        onPress={() => navigation.navigate('Notifications')}
+      >
+        <Icon name="notifications-outline" size={24} color={colors.text} />
+        <Text style={[styles.settingText, { color: colors.text }]}>Thông báo</Text>
+        <Icon name="chevron-forward" size={24} color={colors.text} />
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.settingItem, { borderBottomColor: colors.border }]}
+        onPress={() => navigation.navigate('Privacy')}
+      >
+        <Icon name="shield-outline" size={24} color={colors.text} />
+        <Text style={[styles.settingText, { color: colors.text }]}>Quyền riêng tư</Text>
+        <Icon name="chevron-forward" size={24} color={colors.text} />
+      </TouchableOpacity>
+
+      {/* Nút đăng xuất */}
+      <TouchableOpacity
+        style={[styles.logoutButton, { backgroundColor: colors.error }]}
+        onPress={handleLogout}
+      >
+        <Icon name="log-out-outline" size={24} color={colors.text} />
+        <Text style={[styles.logoutText, { color: colors.text }]}>Đăng xuất</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -55,22 +113,36 @@ const SettingScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 24,
-    justifyContent: 'flex-start',
+    padding: 20,
   },
   title: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 24,
+    marginBottom: 20,
   },
-  row: {
+  settingItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 18,
+    paddingVertical: 15,
+    borderBottomWidth: 1,
   },
-  label: {
+  settingText: {
+    flex: 1,
+    marginLeft: 15,
     fontSize: 16,
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 15,
+    borderRadius: 8,
+    marginTop: 30,
+  },
+  logoutText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 10,
   },
 });
 

@@ -1,0 +1,43 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Hàm kiểm tra vai trò
+    function hasRole(role) {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+    }
+
+    // Hàm kiểm tra quyền
+    function hasPermission(permission) {
+      let userData = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      return permission in userData.permissions;
+    }
+
+    // Quy tắc cho collection users
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && (hasRole('admin') || request.auth.uid == userId);
+    }
+
+    // Quy tắc cho collection posts
+    match /posts/{postId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && (
+        hasPermission('manage_posts') || 
+        resource.data.authorId == request.auth.uid
+      );
+      allow delete: if request.auth != null && hasPermission('manage_posts');
+    }
+
+    // Quy tắc cho collection comments
+    match /comments/{commentId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && (
+        hasPermission('manage_comments') || 
+        resource.data.authorId == request.auth.uid
+      );
+      allow delete: if request.auth != null && hasPermission('manage_comments');
+    }
+  }
+} 
